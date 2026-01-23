@@ -11,8 +11,8 @@ import fetchSessionToken from "./extraction.js";
  * @param {string} [options.search_query=""] - The search query to filter reviews.
  * @param {string} [options.pages="max"] - The number of pages to scrape (default is "max"). If set to a number, it will scrape that number of pages (results will be 10 * pages) or until there are no more reviews.
  * @param {boolean} [options.clean=false] - Whether to return clean reviews or not.
- * @returns {Promise<Array|number>} - Returns an array of reviews or 0 if no reviews are found.
- * @throws {Error} - Throws an error if the URL is not provided or if fetching reviews fails.
+ * @returns {Promise<Array>} - Returns an array of reviews (empty array if no reviews found).
+ * @throws {Error} - Throws an error if the URL is not provided, invalid, or if fetching reviews fails.
  */
 export async function scraper(
     url: string,
@@ -40,13 +40,12 @@ export async function scraper(
         const reviews = await paginateReviews(placeId, sortValue, pages, search_query, clean, sessionToken);
 
         if (!reviews || (Array.isArray(reviews) && reviews.length === 0)) {
-            return 0;
+            return [];
         }
 
         return reviews;
 
     } catch (e) {
-        console.error("Scraper Error:", e instanceof Error ? e.message : e);
-        return 0;
+        throw e instanceof Error ? e : new Error(String(e));
     }
 }
