@@ -11,16 +11,17 @@ async function fetchPlaceDetails(previewUrl: string) {
     let name: string | null = null;
     let address: string | null = null;
     let main_photo_url: string | null = null;
+    let coordinates: { lat: number; lng: number } | null = null;
 
     try {
         const res = await client.fetch(previewUrl);
         const text = await res.text();
         const jsonStr = text.includes(")]}'") ? text.split(")]}'")[1] : text;
-        if (!jsonStr) return { name, address, main_photo_url };
+        if (!jsonStr) return { name, address, main_photo_url, coordinates };
 
         const data = JSON.parse(jsonStr) as any[];
         const place = data[6];
-        if (!Array.isArray(place)) return { name, address, main_photo_url };
+        if (!Array.isArray(place)) return { name, address, main_photo_url, coordinates };
 
         // data[6][11]: Place name
         if (typeof place[11] === "string") {
@@ -43,11 +44,18 @@ async function fetchPlaceDetails(previewUrl: string) {
                 main_photo_url = urlMatch[0].replace(/=w\d+-h\d+-k-no$/, "");
             }
         }
+        // data[6][9]: Coordinates array — [null, null, lat, lng]
+        if (Array.isArray(place[9]) && typeof place[9][2] === "number" && typeof place[9][3] === "number") {
+            coordinates = {
+                lat: Math.round(place[9][2] * 1e6) / 1e6,
+                lng: Math.round(place[9][3] * 1e6) / 1e6,
+            };
+        }
     } catch {
         // Best-effort: return whatever we have
     }
 
-    return { name, address, main_photo_url };
+    return { name, address, main_photo_url, coordinates };
 }
 
 /**
@@ -67,14 +75,14 @@ export default async function fetchPlaceData(url: string, placeId: string): Prom
         const token = html.split("var kEI='")[1]?.split("'")[0];
         if (!token) throw new Error("Could not find session token (kEI) in source.");
 
-        // Extract place coordinates from the page
-        // Google Maps pages embed /@lat,lng, in various URLs within the HTML
+        // Extract place marker coordinates from the page
+        // Google Maps encodes the actual place coordinates as !3d<lat>!4d<lng> in data URLs
         let coordinates: { lat: number; lng: number } | null = null;
-        const coordMatch = html.match(/@(-?\d+\.\d+),(-?\d+\.\d+),/);
+        const coordMatch = html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
         if (coordMatch && coordMatch[1] && coordMatch[2]) {
             coordinates = {
-                lat: parseFloat(coordMatch[1]),
-                lng: parseFloat(coordMatch[2]),
+                lat: Math.round(parseFloat(coordMatch[1]) * 1e6) / 1e6,
+                lng: Math.round(parseFloat(coordMatch[2]) * 1e6) / 1e6,
             };
         }
 
@@ -91,6 +99,10 @@ export default async function fetchPlaceData(url: string, placeId: string): Prom
             name = details.name;
             address = details.address;
             main_photo_url = details.main_photo_url;
+            // Prefer structured API coordinates over regex fallback
+            if (details.coordinates) {
+                coordinates = details.coordinates;
+            }
         }
 
         // Fallback: try to extract name from embedded JS data if preview/place didn't work
