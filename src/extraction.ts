@@ -32,10 +32,16 @@ async function fetchPlaceDetails(previewUrl: string) {
             address = place[39];
         }
 
-        // data[6][72][0][0][0]: Main photo ID → construct Google Photos URL
-        const photoId = place[72]?.[0]?.[0]?.[0];
-        if (typeof photoId === "string" && photoId.startsWith("AF1Qip")) {
-            main_photo_url = `https://lh5.googleusercontent.com/p/${photoId}=w600-h400-k-no`;
+        // Extract main photo URL from photo data
+        // The photo URL is embedded somewhere in the place[72] structure.
+        // Search for a googleusercontent URL directly instead of constructing one.
+        if (Array.isArray(place[72])) {
+            const photoStr = JSON.stringify(place[72]);
+            const urlMatch = photoStr.match(/https?:\/\/lh\d+\.googleusercontent\.com\/[^"\\]+/);
+            if (urlMatch) {
+                // Remove size params (e.g. =w408-h544-k-no) to get the original size
+                main_photo_url = urlMatch[0].replace(/=w\d+-h\d+-k-no$/, "");
+            }
         }
     } catch {
         // Best-effort: return whatever we have
