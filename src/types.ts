@@ -5,6 +5,29 @@ export enum SortEnum {
     "lowest_rating" = 4
 }
 
+export interface PlaceCoordinates {
+    lat: number;
+    lng: number;
+}
+
+export interface PlaceData {
+    session_token: string;
+    coordinates: PlaceCoordinates | null;
+    name: string | null;
+    address: string | null;
+    main_photo_url: string | null;
+}
+
+export interface ScraperResult {
+    place: {
+        name: string | null;
+        address: string | null;
+        coordinates: PlaceCoordinates | null;
+        main_photo_url: string | null;
+    };
+    reviews: ParsedReview[] | any[];
+}
+
 export interface ParsedReview {
     review_id: string;
     time: { published: any; last_edited: any };

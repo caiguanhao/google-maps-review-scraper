@@ -36,7 +36,13 @@ Install with yarn
 ```ts
 import { scraper } from "google-maps-review-scraper"
 
-const reviews = await scraper("url", { sort_type: "sort_type", search_query: "search_query", pages: "pages", clean: false })
+const { place, reviews } = await scraper("url", { sort_type: "sort_type", search_query: "search_query", pages: "pages", clean: false })
+
+console.log(place.name)        // e.g. "Central Park"
+console.log(place.address)     // e.g. "New York, NY 10024, United States"
+console.log(place.coordinates) // e.g. { lat: 40.7828647, lng: -73.9653551 }
+console.log(place.main_photo_url) // e.g. "https://lh5.googleusercontent.com/p/..."
+console.log(reviews.length)    // number of reviews scraped
 ```
 
 ### Arguments
@@ -55,7 +61,15 @@ const reviews = await scraper("url", { sort_type: "sort_type", search_query: "se
 
 ### Returns
 
-`reviews` - `Promise<Array|number>`: A promise that resolves to an array containing the reviews in these [formats](https://github.com/YasogaN/google-maps-review-scraper/blob/main/docs/outputs/output.md) depending on the value of `clean` or the number `0` if no reviews exist.
+The `scraper` function returns a `Promise<ScraperResult>` with the following shape:
+
+| Field | Type | Description |
+|---|---|---|
+| `place.name` | `string \| null` | Name of the place |
+| `place.address` | `string \| null` | Full formatted address |
+| `place.coordinates` | `{ lat: number, lng: number } \| null` | Geographic coordinates |
+| `place.main_photo_url` | `string \| null` | URL of the main photo |
+| `reviews` | `Array` | Array of reviews in these [formats](https://github.com/YasogaN/google-maps-review-scraper/blob/main/docs/outputs/output.md) depending on the value of `clean` (empty array if no reviews exist) |
 
 ---
 
